@@ -91,6 +91,8 @@ class _ConnectionCard extends ConsumerWidget {
                         switch (state.status) {
                           ConnectionStatus.connected => state.deviceName ?? 'Anillo conectado',
                           ConnectionStatus.connecting => 'Conectando...',
+                          ConnectionStatus.reconnecting =>
+                            'Se perdió la conexión, reintentando (${state.reconnectAttempt})...',
                           ConnectionStatus.error => 'Sin conexión',
                           ConnectionStatus.disconnected => 'Sin conexión',
                         },
@@ -116,8 +118,20 @@ class _ConnectionCard extends ConsumerWidget {
                     ],
                   ),
                 ),
-                if (state.status == ConnectionStatus.connecting)
-                  const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                if (state.isBusy)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(
+                          width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                      if (state.status == ConnectionStatus.reconnecting)
+                        TextButton(
+                          // El usuario debe poder rendirse antes que el bucle.
+                          onPressed: () => ref.read(ringControllerProvider.notifier).disconnect(),
+                          child: const Text('Cancelar'),
+                        ),
+                    ],
+                  )
                 else if (state.isConnected)
                   TextButton(
                     onPressed: () => ref.read(ringControllerProvider.notifier).disconnect(),

@@ -63,12 +63,30 @@ class RingConnection {
 
   int mtu = 23;
   bool _connected = false;
+  bool _closing = false;
+  StreamSubscription<bool>? _stateSub;
+
+  final _lost = StreamController<void>.broadcast();
+
+  /// Emite cuando el enlace se cae **sin que lo hayamos pedido**.
+  ///
+  /// Pasa de verdad: el anillo se desconecta con `GATT_CONN_TIMEOUT` (status 8)
+  /// al alejarse. Sin esto la app se queda diciendo "conectado" mientras cada
+  /// comando falla por timeout, que es lo peor de los dos mundos.
+  Stream<void> get connectionLost => _lost.stream;
 
   bool get isConnected => _connected;
 
   Future<void> connect({Duration timeout = const Duration(seconds: 25)}) async {
     await UniversalBle.connect(deviceId, timeout: timeout);
     _connected = true;
+
+    _stateSub = UniversalBle.connectionStream(deviceId).listen((connected) {
+      if (connected || _closing || !_connected) return;
+      _connected = false;
+      _failPendingWaiters('Se perdió la conexión con el anillo');
+      if (!_lost.isClosed) _lost.add(null);
+    });
 
     // En Android se puede pedir MTU; en iOS se negocia solo (~185, igual que en
     // Windows). El reensamblado es obligatorio en ambos casos, no una mejora.
@@ -261,21 +279,31 @@ class RingConnection {
     }
   }
 
+  /// Falla de inmediato todo lo que esté esperando respuesta.
+  ///
+  /// Sin esto, al caerse el enlace cada petición en vuelo se queda colgada hasta
+  /// agotar su timeout, y la app parece congelada en vez de reaccionar.
+  void _failPendingWaiters(String motivo) {
+    for (final w in List<_Waiter>.from(_waiters)) {
+      if (!w.completer.isCompleted) w.completer.completeError(StateError(motivo));
+    }
+    _waiters.clear();
+  }
+
   Future<void> dispose() async {
+    _closing = true;
+    await _stateSub?.cancel();
+    _stateSub = null;
     for (final s in _subs) {
       await s.cancel();
     }
     _subs.clear();
-    for (final w in _waiters) {
-      if (!w.completer.isCompleted) {
-        w.completer.completeError(StateError('Conexión cerrada'));
-      }
-    }
-    _waiters.clear();
+    _failPendingWaiters('Conexión cerrada');
     await _frames.close();
     await _live.close();
     await _activity.close();
     await _trace.close();
+    await _lost.close();
     try {
       await UniversalBle.disconnect(deviceId);
     } catch (_) {}

@@ -37,10 +37,12 @@ class _DebugConsolePageState extends ConsumerState<DebugConsolePage> {
     super.initState();
     // Arrancamos con lo ya registrado: el buffer vive en el controlador y
     // sobrevive a salir de esta pantalla.
-    _entries.addAll(ref.read(ringControllerProvider.notifier).traceHistory);
+    final controller = ref.read(ringControllerProvider.notifier);
+    _entries.addAll(controller.traceHistory);
 
-    final conn = ref.read(connectionProvider);
-    _sub = conn?.trace.listen((e) {
+    // Escuchamos al controlador, no a la conexión: al reconectar se crea una
+    // conexión nueva y la anterior cierra sus streams.
+    _sub = controller.traceStream.listen((e) {
       if (!mounted) return;
       setState(() {
         _entries.add(e);
