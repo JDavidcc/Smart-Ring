@@ -82,7 +82,19 @@ Pendiente: los formatos de historial, sueño y contador de actividad. Los comand
 correctamente, pero el anillo estaba vacío al capturar. Se cierran usando el anillo un día
 y durmiendo con él, y luego sincronizando.
 
-## Licencias de terceros
+## Licencia
 
-La capa BLE usa `universal_ble` (BSD-3), libre también para uso comercial. Se evitó
-`flutter_blue_plus` porque exige licencia de pago para uso no personal.
+Este proyecto se publica bajo licencia **MIT**. Ver [LICENSE](LICENSE).
+
+Aviso: las lecturas de este anillo son de consumo, no de grado médico. La presión arterial en
+particular es una estimación óptica. El software se ofrece sin garantía de ningún tipo.
+
+### Terceros
+
+- La capa BLE usa [`universal_ble`](https://pub.dev/packages/universal_ble) (BSD-3), libre también
+  para uso comercial. Se evitó `flutter_blue_plus` porque exige licencia de pago para uso no
+  personal.
+- La documentación de partida del protocolo procede de
+  [narey83/vitals-smart-ring-app](https://github.com/narey83/vitals-smart-ring-app), también MIT.
+  Ninguna parte de su código se reutiliza aquí: la implementación es propia y sus afirmaciones se
+  verificaron —y en siete puntos se corrigieron— contra el dispositivo real.
