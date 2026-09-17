@@ -1,0 +1,8 @@
+tools/ringlab/.venv/
+tools/ringlab/capturas/
+__pycache__/
+*.pyc
+
+app/.dart_tool/
+app/build/
+app/.flutter-plugins*
